@@ -13,12 +13,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-- name: Install SnowSQL
-  run: |
-    curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.29-linux_x86_64.bash
-    bash snowsql-1.2.29-linux_x86_64.bash -y
-    export PATH="$HOME/bin:$PATH"
-    snowsql -v
+      - name: Install SnowSQL
+        run: |
+          curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.29-linux_x86_64.bash
+          bash snowsql-1.2.29-linux_x86_64.bash -y
+          export PATH="$HOME/bin:$PATH"
+          snowsql -v
 
       - name: Run Students SQL
         env:
@@ -38,6 +38,13 @@ jobs:
                    -f sql/students.sql
 
       - name: Run Orders SQL
+        env:   # ⚠️ IMPORTANT (you missed this)
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
         run: |
           snowsql -a $SNOWFLAKE_ACCOUNT \
                    -u $SNOWFLAKE_USER \
