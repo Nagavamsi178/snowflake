@@ -1,4 +1,4 @@
-name: Snowflake Pipeline
+name: Snowflake CI Pipeline
 
 on:
   push:
@@ -10,17 +10,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      # 1️⃣ Checkout repo
+      - name: Checkout Code
         uses: actions/checkout@v3
 
+      # 2️⃣ Install SnowSQL
       - name: Install SnowSQL
         run: |
-          curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.29-linux_x86_64.bash
-          bash snowsql-1.2.29-linux_x86_64.bash -y
-          export PATH="$HOME/bin:$PATH"
-          snowsql -v
+          curl -L -o snowsql.sh https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.29-linux_x86_64.bash
+          chmod +x snowsql.sh
+          ./snowsql.sh -y
 
-      - name: Run Students SQL
+          echo "$HOME/.snowsql/bin" >> $GITHUB_PATH
+
+      # 3️⃣ Verify installation
+      - name: Check SnowSQL Version
+        run: snowsql -v
+
+      # 4️⃣ Run SQL Files
+      - name: Execute SQL Scripts
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
@@ -37,15 +45,6 @@ jobs:
                    -s $SNOWFLAKE_SCHEMA \
                    -f sql/students.sql
 
-      - name: Run Orders SQL
-        env:   # ⚠️ IMPORTANT (you missed this)
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
-          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
-          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
-        run: |
           snowsql -a $SNOWFLAKE_ACCOUNT \
                    -u $SNOWFLAKE_USER \
                    -p $SNOWFLAKE_PASSWORD \
