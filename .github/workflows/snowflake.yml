@@ -22,8 +22,7 @@ jobs:
 
       # 3️⃣ Install Snowflake Connector
       - name: Install Snowflake Connector
-        run: |
-          pip install snowflake-connector-python
+        run: pip install snowflake-connector-python
 
       # 4️⃣ Execute SQL Files
       - name: Execute SQL Scripts
@@ -50,32 +49,21 @@ conn = snowflake.connector.connect(
     schema=os.environ["SNOWFLAKE_SCHEMA"]
 )
 
+cursor = conn.cursor()
 print("✅ Connected successfully")
 
 def run_sql_file(file_path):
-    print(f"📂 Running file: {file_path}")
-
-    with open(file_path, 'r') as f:
+    print(f"\n📂 Running file: {file_path}")
+    with open(file_path, "r") as f:
         sql_script = f.read()
-
-    # Split SQL statements safely
-    statements = sql_script.split(";")
-
-    for stmt in statements:
-        stmt = stmt.strip()
-        if stmt:
-            try:
-                conn.cursor().execute(stmt)
-                print(f"✔ Executed: {stmt[:50]}...")
-            except Exception as e:
-                print(f"❌ Error: {e}")
-                raise e  # Fail pipeline immediately
+    cursor.execute(sql_script)
 
 # Run SQL files
-run_sql_file("sql/students.sql")
-run_sql_file("sql/orders.sql")
+run_sql_file("students.sql")
+run_sql_file("orders.sql")
 
-print("🎉 All SQL scripts executed successfully!")
+print("🎉 Done!")
 
+cursor.close()
 conn.close()
 EOF
