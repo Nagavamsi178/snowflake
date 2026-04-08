@@ -1,4 +1,4 @@
-orders
+--orders
 CREATE OR REPLACE TABLE orders (
    order_id INT,
    product_name STRING,

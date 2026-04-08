@@ -52,27 +52,30 @@ conn = snowflake.connector.connect(
 
 print("✅ Connected successfully")
 
-cur = conn.cursor()
-
-# Function to execute full SQL file safely
 def run_sql_file(file_path):
     print(f"📂 Running file: {file_path}")
+
     with open(file_path, 'r') as f:
         sql_script = f.read()
 
-    # Execute multi-statement script
-    for statement in conn.execute_stream(sql_script.splitlines()):
-        try:
-            cur.execute(statement)
-        except Exception as e:
-            print(f"❌ Error in {file_path}: {e}")
+    # Split SQL statements safely
+    statements = sql_script.split(";")
 
-# Run both SQL files
+    for stmt in statements:
+        stmt = stmt.strip()
+        if stmt:
+            try:
+                conn.cursor().execute(stmt)
+                print(f"✔ Executed: {stmt[:50]}...")
+            except Exception as e:
+                print(f"❌ Error: {e}")
+                raise e  # Fail pipeline immediately
+
+# Run SQL files
 run_sql_file("sql/students.sql")
 run_sql_file("sql/orders.sql")
 
 print("🎉 All SQL scripts executed successfully!")
 
-cur.close()
 conn.close()
 EOF
