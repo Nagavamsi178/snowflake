@@ -10,22 +10,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout code
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # 2️⃣ Setup Python
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      # 3️⃣ Install Snowflake Connector
       - name: Install Snowflake Connector
         run: pip install snowflake-connector-python
 
-      # 4️⃣ Execute SQL Files
-      - name: Execute SQL Scripts
+      - name: Run SQL Scripts
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
@@ -33,37 +29,4 @@ jobs:
           SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
-        run: |
-          python <<EOF
-import snowflake.connector
-import os
-
-print("🔌 Connecting to Snowflake...")
-
-conn = snowflake.connector.connect(
-    user=os.environ["SNOWFLAKE_USER"],
-    password=os.environ["SNOWFLAKE_PASSWORD"],
-    account=os.environ["SNOWFLAKE_ACCOUNT"],
-    warehouse=os.environ["SNOWFLAKE_WAREHOUSE"],
-    database=os.environ["SNOWFLAKE_DATABASE"],
-    schema=os.environ["SNOWFLAKE_SCHEMA"]
-)
-
-cursor = conn.cursor()
-print("✅ Connected successfully")
-
-def run_sql_file(file_path):
-    print(f"\n📂 Running file: {file_path}")
-    with open(file_path, "r") as f:
-        sql_script = f.read()
-    cursor.execute(sql_script)
-
-# Run SQL files
-run_sql_file("students.sql")
-run_sql_file("orders.sql")
-
-print("🎉 Done!")
-
-cursor.close()
-conn.close()
-EOF
+        run: python run_sql.py
