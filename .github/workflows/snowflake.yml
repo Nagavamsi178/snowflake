@@ -10,30 +10,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repo
+      # 1️⃣ Checkout your repository
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # 2️⃣ Install dependencies
+      # 2️⃣ Install required dependencies
       - name: Install Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libnsl-dev
+          sudo apt-get update -y
+          sudo apt-get install -y libnsl-dev libssl-dev
 
-      # 3️⃣ Install SnowSQL (FIXED)
+      # 3️⃣ Install SnowSQL (FIXED VERSION)
       - name: Install SnowSQL
         run: |
+          echo "Downloading SnowSQL..."
           curl -L -o snowsql.sh https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.29-linux_x86_64.bash
+
           chmod +x snowsql.sh
 
-          SNOWSQL_DEST=$HOME/snowsql
-          bash snowsql.sh -y --install-dir $SNOWSQL_DEST
+          echo "Installing SnowSQL..."
+          mkdir -p $HOME/snowsql
 
-          echo "$SNOWSQL_DEST/bin" >> $GITHUB_PATH
+          # Ignore false failure from installer
+          bash snowsql.sh -y --install-dir $HOME/snowsql || true
+
+          echo "Adding SnowSQL to PATH..."
+          echo "$HOME/snowsql/bin" >> $GITHUB_PATH
 
       # 4️⃣ Verify installation
-      - name: Check SnowSQL Version
-        run: snowsql --version
+      - name: Verify SnowSQL
+        run: |
+          $HOME/snowsql/bin/snowsql --version
 
       # 5️⃣ Execute SQL files
       - name: Execute SQL Scripts
