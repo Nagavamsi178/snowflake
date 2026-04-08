@@ -1,0 +1,46 @@
+name: Snowflake Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  run-sql:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install SnowSQL
+        run: |
+          curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.29-linux_x86_64.bash
+          bash snowsql-1.2.29-linux_x86_64.bash
+
+      - name: Run Students SQL
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+        run: |
+          snowsql -a $SNOWFLAKE_ACCOUNT \
+                   -u $SNOWFLAKE_USER \
+                   -p $SNOWFLAKE_PASSWORD \
+                   -w $SNOWFLAKE_WAREHOUSE \
+                   -d $SNOWFLAKE_DATABASE \
+                   -s $SNOWFLAKE_SCHEMA \
+                   -f sql/students.sql
+
+      - name: Run Orders SQL
+        run: |
+          snowsql -a $SNOWFLAKE_ACCOUNT \
+                   -u $SNOWFLAKE_USER \
+                   -p $SNOWFLAKE_PASSWORD \
+                   -w $SNOWFLAKE_WAREHOUSE \
+                   -d $SNOWFLAKE_DATABASE \
+                   -s $SNOWFLAKE_SCHEMA \
+                   -f sql/orders.sql
