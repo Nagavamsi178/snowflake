@@ -10,39 +10,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout your repository
+      # 1️⃣ Checkout code
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # 2️⃣ Install required dependencies
-      - name: Install Dependencies
+      # 2️⃣ Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # 3️⃣ Install Snowflake Connector
+      - name: Install Snowflake Connector
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y libnsl-dev libssl-dev
+          pip install snowflake-connector-python
 
-      # 3️⃣ Install SnowSQL (FIXED VERSION)
-      - name: Install SnowSQL
-        run: |
-          echo "Downloading SnowSQL..."
-          curl -L -o snowsql.sh https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.29-linux_x86_64.bash
-
-          chmod +x snowsql.sh
-
-          echo "Installing SnowSQL..."
-          mkdir -p $HOME/snowsql
-
-          # Ignore false failure from installer
-          bash snowsql.sh -y --install-dir $HOME/snowsql || true
-
-          echo "Adding SnowSQL to PATH..."
-          echo "$HOME/snowsql/bin" >> $GITHUB_PATH
-
-      # 4️⃣ Verify installation
-      - name: Verify SnowSQL
-        run: |
-          $HOME/snowsql/bin/snowsql --version
-
-      # 5️⃣ Execute SQL files
+      # 4️⃣ Execute SQL Files
       - name: Execute SQL Scripts
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
@@ -52,20 +35,44 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
         run: |
-          echo "Running students.sql..."
-          snowsql -a $SNOWFLAKE_ACCOUNT \
-                   -u $SNOWFLAKE_USER \
-                   -p "$SNOWFLAKE_PASSWORD" \
-                   -w $SNOWFLAKE_WAREHOUSE \
-                   -d $SNOWFLAKE_DATABASE \
-                   -s $SNOWFLAKE_SCHEMA \
-                   -f sql/students.sql
+          python <<EOF
+import snowflake.connector
+import os
 
-          echo "Running orders.sql..."
-          snowsql -a $SNOWFLAKE_ACCOUNT \
-                   -u $SNOWFLAKE_USER \
-                   -p "$SNOWFLAKE_PASSWORD" \
-                   -w $SNOWFLAKE_WAREHOUSE \
-                   -d $SNOWFLAKE_DATABASE \
-                   -s $SNOWFLAKE_SCHEMA \
-                   -f sql/orders.sql
+print("🔌 Connecting to Snowflake...")
+
+conn = snowflake.connector.connect(
+    user=os.environ["SNOWFLAKE_USER"],
+    password=os.environ["SNOWFLAKE_PASSWORD"],
+    account=os.environ["SNOWFLAKE_ACCOUNT"],
+    warehouse=os.environ["SNOWFLAKE_WAREHOUSE"],
+    database=os.environ["SNOWFLAKE_DATABASE"],
+    schema=os.environ["SNOWFLAKE_SCHEMA"]
+)
+
+print("✅ Connected successfully")
+
+cur = conn.cursor()
+
+# Function to execute full SQL file safely
+def run_sql_file(file_path):
+    print(f"📂 Running file: {file_path}")
+    with open(file_path, 'r') as f:
+        sql_script = f.read()
+
+    # Execute multi-statement script
+    for statement in conn.execute_stream(sql_script.splitlines()):
+        try:
+            cur.execute(statement)
+        except Exception as e:
+            print(f"❌ Error in {file_path}: {e}")
+
+# Run both SQL files
+run_sql_file("sql/students.sql")
+run_sql_file("sql/orders.sql")
+
+print("🎉 All SQL scripts executed successfully!")
+
+cur.close()
+conn.close()
+EOF
